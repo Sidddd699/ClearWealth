@@ -21,7 +21,7 @@ const PLANS = {
     name: "Pro",
     price: 149,
     yearlyPrice: 1199,
-    features: ["Unlimited expenses","Unlimited goals","Debt tracker","AI Financial Advisor","Health Score","Priority support"],
+    features: ["Unlimited expenses","Unlimited goals","Debt tracker","Money Assistant","Health Score","Priority support"],
     limits: { expenses: Infinity, goals: Infinity, debts: Infinity, ai: true },
   },
 };
@@ -219,6 +219,7 @@ function Onboarding({ onDone }) {
       ),
       canNext: parseFloat(income) > 0,
       nextLabel: "Start Planning →",
+      extra: <p style={{ fontSize:11, color:"#334155", marginTop:12, textAlign:"center", lineHeight:1.7 }}>By continuing you agree to our <span style={{ color:"#10b981", cursor:"pointer" }}>Terms of Service</span> and acknowledge that ClearWealth is a budgeting tool, not a SEBI-registered financial advisor.</p>,
     },
   ];
 
@@ -240,6 +241,7 @@ function Onboarding({ onDone }) {
           <p style={{ color:"#64748b", fontSize:14, textAlign:"center", marginBottom:28, lineHeight:1.6 }}>{current.sub}</p>
 
           {current.content}
+          {current.extra && current.extra}
 
           <div style={{ display:"flex", gap:10, marginTop:24 }}>
             {step > 0 && <button onClick={()=>setStep(s=>s-1)} style={{ flex:1, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"13px 0", color:"#94a3b8", fontSize:15, cursor:"pointer", fontFamily:"inherit" }}>← Back</button>}
@@ -342,14 +344,67 @@ function AddDebtForm({ onAdd, onCancel }) {
 }
 
 // ─────────────────────────────────────────────
+// LEGAL MODALS
+// ─────────────────────────────────────────────
+function LegalModal({ title, onClose, children }) {
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", zIndex:2000, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:"#0d1b2a", border:"1px solid rgba(255,255,255,0.1)", borderRadius:20, padding:28, maxWidth:620, width:"100%", maxHeight:"85vh", overflowY:"auto", position:"relative" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+          <h2 style={{ margin:0, fontSize:20, color:"#e8e4d9" }}>{title}</h2>
+          <button onClick={onClose} style={{ background:"transparent", border:"none", color:"#64748b", fontSize:22, cursor:"pointer" }}>✕</button>
+        </div>
+        <div style={{ color:"#94a3b8", fontSize:13, lineHeight:1.9 }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function TermsContent() {
+  return (
+    <>
+      <p style={{ color:"#64748b", fontSize:12, marginBottom:16 }}>Last updated: March 2026</p>
+      <p><strong style={{ color:"#e8e4d9" }}>1. Acceptance of Terms</strong><br/>By using ClearWealth ("the App"), you agree to these Terms. If you disagree, please stop using the App immediately.</p>
+      <p><strong style={{ color:"#e8e4d9" }}>2. Not Financial Advice</strong><br/>ClearWealth is a personal budgeting and expense tracking tool only. Nothing in this App — including any AI-generated suggestions from the Money Assistant — constitutes financial, investment, tax, or legal advice. ClearWealth is not a SEBI-registered investment advisor. Always consult a qualified, SEBI-registered financial advisor before making any investment or financial decision.</p>
+      <p><strong style={{ color:"#e8e4d9" }}>3. No Liability</strong><br/>ClearWealth and its owners shall not be liable for any financial losses, decisions, or damages arising from your use of the App or reliance on any information provided within it. Use the App at your own risk.</p>
+      <p><strong style={{ color:"#e8e4d9" }}>4. Data Storage</strong><br/>Your financial data is stored locally on your device using browser storage. ClearWealth does not store your personal financial data on any server. You are responsible for the safety of your device and data.</p>
+      <p><strong style={{ color:"#e8e4d9" }}>5. Subscriptions & Payments</strong><br/>Pro subscriptions are billed monthly (₹149) or yearly (₹1,199). Payments are processed by Stripe. You may cancel at any time. Refunds are subject to our refund policy. ClearWealth reserves the right to change pricing with 30 days' notice.</p>
+      <p><strong style={{ color:"#e8e4d9" }}>6. Eligibility</strong><br/>You must be at least 18 years old to use ClearWealth.</p>
+      <p><strong style={{ color:"#e8e4d9" }}>7. Changes to Terms</strong><br/>We may update these Terms at any time. Continued use of the App after changes constitutes your acceptance of the new Terms.</p>
+      <p><strong style={{ color:"#e8e4d9" }}>8. Governing Law</strong><br/>These Terms are governed by the laws of India. Any disputes shall be subject to the jurisdiction of courts in India.</p>
+    </>
+  );
+}
+
+function PrivacyContent() {
+  return (
+    <>
+      <p style={{ color:"#64748b", fontSize:12, marginBottom:16 }}>Last updated: March 2026</p>
+      <p><strong style={{ color:"#e8e4d9" }}>1. What Data We Collect</strong><br/>ClearWealth collects only the information you enter into the App: your name, income, expenses, goals, and debt information. This data is stored locally on your device only and is never transmitted to our servers.</p>
+      <p><strong style={{ color:"#e8e4d9" }}>2. AI Money Assistant</strong><br/>When you use the Money Assistant, your financial summary (income, expenses, goals, debts) is sent to Anthropic's API to generate a response. This data is processed by Anthropic under their privacy policy. We do not store these conversations on our servers.</p>
+      <p><strong style={{ color:"#e8e4d9" }}>3. Payment Data</strong><br/>Payment information is handled entirely by Stripe. ClearWealth never sees or stores your card details. Please review Stripe's Privacy Policy for details.</p>
+      <p><strong style={{ color:"#e8e4d9" }}>4. Cookies & Analytics</strong><br/>We may use basic analytics to understand how many people use the App. No personally identifiable information is collected through analytics.</p>
+      <p><strong style={{ color:"#e8e4d9" }}>5. Data Deletion</strong><br/>Since your data is stored on your device, you can delete it at any time by clearing your browser's local storage or uninstalling the App.</p>
+      <p><strong style={{ color:"#e8e4d9" }}>6. Third-Party Services</strong><br/>We use: Anthropic (AI responses), Stripe (payments), and Vercel (hosting). Each operates under their own privacy policy.</p>
+      <p><strong style={{ color:"#e8e4d9" }}>7. Contact</strong><br/>For privacy concerns, please contact us through the App's support channel.</p>
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────
 // LANDING PAGE
 // ─────────────────────────────────────────────
 function Landing({ onEnter }) {
   const w = useWindowWidth(); const mob = w < 640;
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
   return (
     <div style={{ minHeight:"100vh", background:"linear-gradient(135deg,#080e1a,#0d1b2a)", fontFamily:"'Georgia',serif", color:"#e8e4d9", overflowX:"hidden" }}>
       {showUpgrade && <UpgradeModal onClose={()=>setShowUpgrade(false)} />}
+      {showTerms && <LegalModal title="Terms of Service" onClose={()=>setShowTerms(false)}><TermsContent /></LegalModal>}
+      {showPrivacy && <LegalModal title="Privacy Policy" onClose={()=>setShowPrivacy(false)}><PrivacyContent /></LegalModal>}
+
       <div style={{ position:"fixed", top:"-20%", right:"-10%", width:500, height:500, borderRadius:"50%", background:"radial-gradient(circle,rgba(16,185,129,0.08),transparent 70%)", pointerEvents:"none" }} />
       <nav style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:mob?"16px 20px":"20px 44px", borderBottom:"1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
@@ -368,13 +423,13 @@ function Landing({ onEnter }) {
           Your Money.<br/>Finally Under Control.
         </h1>
         <p style={{ fontSize:mob?15:18, color:"#94a3b8", maxWidth:500, margin:"0 auto 40px", lineHeight:1.7 }}>
-          Budget smarter, crush debt, reach your goals — with an AI advisor that knows your full financial picture.
+          Budget smarter, crush debt, reach your goals — with a smart assistant that helps you understand your money.
         </p>
         <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap" }}>
           <button onClick={onEnter} style={{ background:"linear-gradient(135deg,#10b981,#059669)", border:"none", borderRadius:12, padding:"15px 40px", color:"#fff", fontSize:16, fontWeight:700, cursor:"pointer", fontFamily:"inherit", boxShadow:"0 0 40px rgba(16,185,129,0.3)" }}>Start Free</button>
           <button onClick={()=>setShowUpgrade(true)} style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:12, padding:"15px 40px", color:"#e8e4d9", fontSize:16, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>See Pro Plan →</button>
         </div>
-        <p style={{ marginTop:16, color:"#334155", fontSize:12 }}>12,400+ users · ⭐ 4.9/5</p>
+        <p style={{ marginTop:16, color:"#334155", fontSize:12 }}>Built for India · Free to start · No credit card needed</p>
       </div>
 
       {/* Features grid */}
@@ -384,7 +439,7 @@ function Landing({ onEnter }) {
           {icon:"🎯",t:"Goal Tracker",d:"Visualise savings targets",free:true},
           {icon:"💳",t:"Debt Planner",d:"Track EMIs, crush debt faster",free:false},
           {icon:"❤️",t:"Health Score",d:"Your overall financial fitness",free:false},
-          {icon:"🤖",t:"AI Advisor",d:"Claude answers any money question",free:false},
+          {icon:"🤖",t:"Money Assistant",d:"Get budgeting tips & general guidance",free:false},
           {icon:"💾",t:"Auto Save",d:"Your data is always saved",free:true},
         ].map(f=>(
           <div key={f.t} style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:mob?"14px":"20px", position:"relative" }}>
@@ -397,13 +452,13 @@ function Landing({ onEnter }) {
       </div>
 
       {/* Pricing section */}
-      <div style={{ maxWidth:700, margin:"0 auto", padding:mob?"0 16px 80px":"0 24px 100px" }}>
+      <div style={{ maxWidth:700, margin:"0 auto", padding:mob?"0 16px 60px":"0 24px 80px" }}>
         <h2 style={{ textAlign:"center", fontSize:mob?26:32, marginBottom:8 }}>Simple Pricing</h2>
         <p style={{ textAlign:"center", color:"#64748b", marginBottom:36, fontSize:14 }}>Less than your morning chai.</p>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
           {[
             { name:"Free", price:"₹0", sub:"forever", features:["Budget tracker","Up to 3 expenses","1 savings goal","Overview dashboard"], cta:"Start Free", action:onEnter, hi:false },
-            { name:"Pro", price:"₹149", sub:"/month", features:["Everything in Free","Unlimited expenses & goals","Debt tracker","AI Financial Advisor","Health Score"], cta:"Get Pro", action:()=>setShowUpgrade(true), hi:true },
+            { name:"Pro", price:"₹149", sub:"/month", features:["Everything in Free","Unlimited expenses & goals","Debt tracker","Money Assistant","Health Score"], cta:"Get Pro", action:()=>setShowUpgrade(true), hi:true },
           ].map(p=>(
             <div key={p.name} style={{ background:p.hi?"rgba(16,185,129,0.06)":"rgba(255,255,255,0.03)", border:`1px solid ${p.hi?"rgba(16,185,129,0.35)":"rgba(255,255,255,0.07)"}`, borderRadius:18, padding:mob?20:28 }}>
               {p.hi&&<div style={{ color:"#10b981", fontSize:11, fontWeight:700, letterSpacing:1, marginBottom:8 }}>MOST POPULAR</div>}
@@ -415,6 +470,27 @@ function Landing({ onEnter }) {
               <button onClick={p.action} style={{ width:"100%", padding:"12px 0", background:p.hi?"linear-gradient(135deg,#10b981,#059669)":"rgba(255,255,255,0.06)", border:"none", borderRadius:9, color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>{p.cta}</button>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Legal disclaimer */}
+      <div style={{ maxWidth:700, margin:"0 auto", padding:mob?"0 20px 32px":"0 44px 32px" }}>
+        <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:12, padding:"14px 18px", fontSize:12, color:"#475569", lineHeight:1.8, textAlign:"center" }}>
+          ⚠️ <strong style={{ color:"#64748b" }}>Disclaimer:</strong> ClearWealth is a budgeting tool only. Nothing in this app constitutes financial, investment, or legal advice. The Money Assistant provides general guidance — not personalised recommendations. Always consult a SEBI-registered financial advisor before making investment decisions.
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={{ borderTop:"1px solid rgba(255,255,255,0.05)", padding:mob?"20px 20px":"20px 44px", display:"flex", flexDirection:mob?"column":"row", justifyContent:"space-between", alignItems:"center", gap:12 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <span style={{ fontSize:16 }}>₹</span>
+          <span style={{ fontSize:14, fontWeight:700 }}>ClearWealth</span>
+          <span style={{ color:"#1e293b", fontSize:12 }}>© 2026</span>
+        </div>
+        <div style={{ color:"#1e293b", fontSize:11 }}>Not a SEBI-registered advisor · For budgeting use only</div>
+        <div style={{ display:"flex", gap:20 }}>
+          <button onClick={()=>setShowTerms(true)} style={{ background:"none", border:"none", color:"#475569", fontSize:12, cursor:"pointer", fontFamily:"inherit", padding:0 }}>Terms of Service</button>
+          <button onClick={()=>setShowPrivacy(true)} style={{ background:"none", border:"none", color:"#475569", fontSize:12, cursor:"pointer", fontFamily:"inherit", padding:0 }}>Privacy Policy</button>
         </div>
       </div>
     </div>
@@ -436,7 +512,7 @@ function Dashboard({ userName, userIncome }) {
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [showAddDebt, setShowAddDebt] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [msgs, setMsgs] = useLocalStorage("cw_chat", [{ role:"assistant", content:`Hi ${userName}! 👋 I'm your AI financial advisor. I can see your full financial picture. Ask me anything about budgeting, saving, or investing!` }]);
+  const [msgs, setMsgs] = useLocalStorage("cw_chat", [{ role:"assistant", content:`Hi ${userName}! 👋 I'm your AI Money Assistant. I can see your full financial picture. Ask me anything about budgeting, saving, or investing!` }]);
   const [chatInput, setChatInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const chatRef = useRef(null);
@@ -475,13 +551,13 @@ function Dashboard({ userName, userIncome }) {
     if (!isPro) { setShowUpgrade(true); return; }
     if (!chatInput.trim()||aiLoading) return;
     const u = chatInput.trim(); setChatInput(""); setMsgs(m=>[...m,{role:"user",content:u}]); setAiLoading(true);
-    const ctx=`You are a friendly AI financial advisor for Indian users. User: ${userName}. Data:
+    const ctx=`You are a friendly budgeting assistant for Indian users. User: ${userName}. Data:
 - Income: ₹${income.toLocaleString()} | Expenses: ₹${totalExp.toLocaleString()} | Savings: ₹${savings.toLocaleString()} (${savingsRate}%)
 - Spending: ${JSON.stringify(byCat)}
 - Goals: ${goals.map(g=>`${g.name} ₹${g.saved}/${g.target}`).join("; ")||"none"}
 - Debts: ${debts.map(d=>`${d.name} ₹${d.remaining} at ${d.rate}% EMI ₹${d.emi}`).join("; ")||"none"}
 - Health Score: ${score}/100 (${scoreLabel})
-Give concise, actionable advice in 2-4 sentences. Use Indian context — PPF, NPS, SIPs, FD when relevant.`;
+Give concise, practical budgeting guidance in 2-4 sentences. You are NOT a licensed financial advisor. Always remind the user to consult a qualified SEBI-registered advisor before making investment decisions. Use Indian context — PPF, NPS, SIPs, FD when relevant but frame them as general options, not personal recommendations.`;
     try {
       const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:1000,system:ctx,messages:[...msgs.map(m=>({role:m.role,content:m.content})),{role:"user",content:u}]})});
       const data=await res.json();
@@ -496,8 +572,8 @@ Give concise, actionable advice in 2-4 sentences. Use Indian context — PPF, NP
   const lbl = {fontSize:10,color:"#64748b",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5};
 
   const TABS = mob
-    ? [{id:"overview",icon:"📊",label:"HOME"},{id:"budget",icon:"💰",label:"BUDGET"},{id:"goals",icon:"🎯",label:"GOALS"},{id:"debts",icon:"💳",label:"DEBTS"},{id:"advisor",icon:"🤖",label:"AI"}]
-    : [{id:"overview",l:"📊 Overview"},{id:"budget",l:"💰 Budget"},{id:"goals",l:"🎯 Goals"},{id:"debts",l:"💳 Debts"},{id:"advisor",l:"🤖 AI Advisor"}];
+    ? [{id:"overview",icon:"📊",label:"HOME"},{id:"budget",icon:"💰",label:"BUDGET"},{id:"goals",icon:"🎯",label:"GOALS"},{id:"debts",icon:"💳",label:"DEBTS"},{id:"advisor",icon:"🤖",label:"CHAT"}]
+    : [{id:"overview",l:"📊 Overview"},{id:"budget",l:"💰 Budget"},{id:"goals",l:"🎯 Goals"},{id:"debts",l:"💳 Debts"},{id:"advisor",l:"🤖 Money Assistant"}];
 
   return (
     <div style={{ minHeight:"100vh", background:"#080e1a", color:"#e8e4d9", fontFamily:"'Georgia',serif", paddingBottom:mob?80:0 }}>
@@ -737,11 +813,14 @@ Give concise, actionable advice in 2-4 sentences. Use Indian context — PPF, NP
         {tab==="advisor"&&(
           <div style={{ display:"flex", flexDirection:"column", height:mob?"calc(100vh - 160px)":"calc(100vh - 130px)", minHeight:400 }}>
             <div style={{ marginBottom:12 }}>
-              <h2 style={{ fontSize:mob?18:22, margin:0 }}>AI Advisor</h2>
-              <p style={{ color:"#475569", fontSize:12, marginTop:4 }}>Powered by Claude · Knows your full picture</p>
+              <h2 style={{ fontSize:mob?18:22, margin:0 }}>Money Assistant</h2>
+              <p style={{ color:"#475569", fontSize:12, marginTop:4 }}>General budgeting guidance · Not financial advice</p>
+              <div style={{ marginTop:8, padding:"8px 12px", background:"rgba(245,158,11,0.06)", border:"1px solid rgba(245,158,11,0.2)", borderRadius:8, fontSize:11, color:"#92400e" }}>
+                ⚠️ The Money Assistant provides general information only — not personalised financial or investment advice. Consult a SEBI-registered advisor for investment decisions.
+              </div>
             </div>
             {!isPro ? (
-              <ProGate onUpgrade={()=>setShowUpgrade(true)} label="AI Advisor is a Pro feature" />
+              <ProGate onUpgrade={()=>setShowUpgrade(true)} label="Money Assistant is a Pro feature" />
             ) : (
               <>
                 <div style={{ display:"flex", gap:8, marginBottom:10, flexWrap:"wrap" }}>
@@ -753,8 +832,9 @@ Give concise, actionable advice in 2-4 sentences. Use Indian context — PPF, NP
                   {msgs.map((m,i)=>(
                     <div key={i} style={{ display:"flex", justifyContent:m.role==="user"?"flex-end":"flex-start" }}>
                       <div style={{ maxWidth:mob?"88%":"72%", padding:"11px 14px", borderRadius:14, fontSize:14, lineHeight:1.65, background:m.role==="user"?"linear-gradient(135deg,#10b981,#059669)":"rgba(255,255,255,0.05)", color:m.role==="user"?"#fff":"#e8e4d9", borderBottomRightRadius:m.role==="user"?4:14, borderBottomLeftRadius:m.role==="assistant"?4:14 }}>
-                        {m.role==="assistant"&&<div style={{ fontSize:10, color:"#475569", marginBottom:4 }}>🤖 AI ADVISOR</div>}
+                        {m.role==="assistant"&&<div style={{ fontSize:10, color:"#475569", marginBottom:4 }}>🤖 MONEY ASSISTANT</div>}
                         {m.content}
+                        {m.role==="assistant"&&<div style={{ fontSize:10, color:"#475569", marginTop:8, paddingTop:8, borderTop:"1px solid rgba(255,255,255,0.06)" }}>⚠️ General guidance only — not financial advice. Consult a SEBI-registered advisor for investments.</div>}
                       </div>
                     </div>
                   ))}
@@ -799,4 +879,3 @@ export default function App() {
   );
   return <Dashboard userName={profile.name} userIncome={profile.income} />;
 }
-
