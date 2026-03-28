@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
 // ─────────────────────────────────────────────
-// CONFIG — replace these with your real values
+// CONFIG — replace these with your real Razorpay Payment Link URLs
+// Get them from: razorpay.com → Payment Links → Create
 // ─────────────────────────────────────────────
-const STRIPE_MONTHLY_LINK = "https://buy.stripe.com/YOUR_MONTHLY_LINK";   // ← paste your Stripe link
-const STRIPE_YEARLY_LINK  = "https://buy.stripe.com/YOUR_YEARLY_LINK";    // ← paste your Stripe link
+const RAZORPAY_MONTHLY_LINK = "https://rzp.io/rzp/tmxt2j1e";
+const RAZORPAY_YEARLY_LINK  = "https://rzp.io/rzp/JhS6pjaK";
 const CLAUDE_MODEL = "claude-sonnet-4-20250514";
 
 // ─────────────────────────────────────────────
@@ -148,11 +149,11 @@ function UpgradeModal({ onClose }) {
           ))}
         </div>
 
-        <a href={yearly ? STRIPE_YEARLY_LINK : STRIPE_MONTHLY_LINK} target="_blank" rel="noreferrer"
+        <a href={yearly ? RAZORPAY_YEARLY_LINK : RAZORPAY_MONTHLY_LINK} target="_blank" rel="noreferrer"
           style={{ display:"block", width:"100%", padding:"14px 0", background:"linear-gradient(135deg,#10b981,#059669)", border:"none", borderRadius:12, color:"#fff", fontSize:16, fontWeight:700, cursor:"pointer", textAlign:"center", textDecoration:"none", boxSizing:"border-box", boxShadow:"0 0 30px rgba(16,185,129,0.3)" }}>
           Upgrade to Pro →
         </a>
-        <p style={{ textAlign:"center", fontSize:12, color:"#334155", marginTop:12, marginBottom:0 }}>Secure payment via Stripe · Cancel anytime</p>
+        <p style={{ textAlign:"center", fontSize:12, color:"#334155", marginTop:12, marginBottom:0 }}>Secure payment via Razorpay · UPI, Cards, NetBanking · Cancel anytime</p>
       </div>
     </div>
   );
@@ -879,3 +880,4 @@ export default function App() {
   );
   return <Dashboard userName={profile.name} userIncome={profile.income} />;
 }
+
