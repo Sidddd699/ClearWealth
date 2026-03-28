@@ -4,6 +4,17 @@ import { useState, useEffect, useRef, useCallback } from "react";
 // CONFIG — replace these with your real Razorpay Payment Link URLs
 // Get them from: razorpay.com → Payment Links → Create
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// ACTIVATION CODES — add new codes here as users pay
+// Generate any code you want, then WhatsApp it to the user
+// ─────────────────────────────────────────────
+const VALID_PRO_CODES = [
+  "CWPRO2026",
+  "CLEARWEALTH1",
+  "SIDPRO01",
+  // Add more here every time someone pays
+];
+
 const RAZORPAY_MONTHLY_LINK = "https://rzp.io/rzp/tmxt2j1e";
 const RAZORPAY_YEARLY_LINK  = "https://rzp.io/rzp/JhS6pjaK";
 const CLAUDE_MODEL = "claude-sonnet-4-20250514";
@@ -107,9 +118,68 @@ function healthScore(income, totalExp, savingsRate, debts) {
 }
 
 // ─────────────────────────────────────────────
-// UPGRADE MODAL
+// ACTIVATION MODAL
 // ─────────────────────────────────────────────
-function UpgradeModal({ onClose }) {
+function ActivationModal({ onSuccess, onClose }) {
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => { if (ref.current) ref.current.focus(); }, []);
+
+  const submit = () => {
+    const trimmed = code.trim().toUpperCase();
+    if (VALID_PRO_CODES.includes(trimmed)) {
+      setSuccess(true);
+      setTimeout(() => { onSuccess(); onClose(); }, 1500);
+    } else {
+      setError("Invalid code. Please check your code and try again, or contact support.");
+    }
+  };
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:"#0d1b2a", border:"1px solid rgba(16,185,129,0.3)", borderRadius:20, padding:32, maxWidth:420, width:"100%", position:"relative" }}>
+        <button onClick={onClose} style={{ position:"absolute", top:16, right:16, background:"transparent", border:"none", color:"#64748b", fontSize:20, cursor:"pointer" }}>✕</button>
+        {success ? (
+          <div style={{ textAlign:"center", padding:"20px 0" }}>
+            <div style={{ fontSize:48, marginBottom:16 }}>🎉</div>
+            <h2 style={{ color:"#10b981", margin:"0 0 8px" }}>Pro Activated!</h2>
+            <p style={{ color:"#64748b", fontSize:14 }}>Welcome to ClearWealth Pro. Enjoy all features!</p>
+          </div>
+        ) : (
+          <>
+            <div style={{ textAlign:"center", marginBottom:24 }}>
+              <div style={{ fontSize:36, marginBottom:12 }}>🔑</div>
+              <h2 style={{ fontSize:20, margin:"0 0 8px", color:"#e8e4d9" }}>Enter Activation Code</h2>
+              <p style={{ color:"#64748b", fontSize:13, lineHeight:1.6 }}>
+                After payment, you'll receive an activation code via WhatsApp or email within a few minutes.
+              </p>
+            </div>
+            <input
+              ref={ref}
+              value={code}
+              onChange={e => { setCode(e.target.value); setError(""); }}
+              onKeyDown={e => e.key === "Enter" && submit()}
+              placeholder="e.g. CWPRO2026"
+              style={{ width:"100%", background:"rgba(255,255,255,0.06)", border:`1px solid ${error?"#ef4444":"rgba(255,255,255,0.15)"}`, borderRadius:10, padding:"14px 16px", color:"#e8e4d9", fontSize:18, fontFamily:"inherit", outline:"none", textAlign:"center", letterSpacing:2, textTransform:"uppercase", boxSizing:"border-box", marginBottom:10 }}
+            />
+            {error && <p style={{ color:"#ef4444", fontSize:12, marginBottom:10, textAlign:"center" }}>{error}</p>}
+            <button onClick={submit} style={{ width:"100%", background:"linear-gradient(135deg,#10b981,#059669)", border:"none", borderRadius:10, padding:"13px 0", color:"#fff", fontSize:15, fontWeight:700, cursor:"pointer", fontFamily:"inherit", marginBottom:12 }}>
+              Activate Pro →
+            </button>
+            <p style={{ textAlign:"center", fontSize:12, color:"#334155" }}>
+              Paid but no code yet? WhatsApp us and we'll send it within minutes.
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+function UpgradeModal({ onClose, monthlyLink, yearlyLink, onCheckAccess, checking }) {
   const [yearly, setYearly] = useState(false);
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.8)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}
@@ -149,11 +219,22 @@ function UpgradeModal({ onClose }) {
           ))}
         </div>
 
-        <a href={yearly ? RAZORPAY_YEARLY_LINK : RAZORPAY_MONTHLY_LINK} target="_blank" rel="noreferrer"
+        <a href={yearly ? yearlyLink : monthlyLink} target="_blank" rel="noreferrer"
           style={{ display:"block", width:"100%", padding:"14px 0", background:"linear-gradient(135deg,#10b981,#059669)", border:"none", borderRadius:12, color:"#fff", fontSize:16, fontWeight:700, cursor:"pointer", textAlign:"center", textDecoration:"none", boxSizing:"border-box", boxShadow:"0 0 30px rgba(16,185,129,0.3)" }}>
-          Upgrade to Pro →
+          Pay with Razorpay →
         </a>
         <p style={{ textAlign:"center", fontSize:12, color:"#334155", marginTop:12, marginBottom:0 }}>Secure payment via Razorpay · UPI, Cards, NetBanking · Cancel anytime</p>
+        <div style={{ marginTop:16, paddingTop:16, borderTop:"1px solid rgba(255,255,255,0.07)", display:"flex", flexDirection:"column", gap:8, alignItems:"center" }}>
+          <button onClick={()=>{ onCheckAccess(); }}
+            disabled={checking}
+            style={{ background:"rgba(16,185,129,0.1)", border:"1px solid rgba(16,185,129,0.2)", borderRadius:8, padding:"10px 24px", color:"#10b981", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit", width:"100%", opacity:checking?0.7:1 }}>
+            {checking ? "Checking…" : "✅ I just paid — Check my access"}
+          </button>
+          <button onClick={()=>{ onClose(); setTimeout(()=>document.dispatchEvent(new CustomEvent("showActivation")),100); }}
+            style={{ background:"transparent", border:"none", color:"#475569", fontSize:12, cursor:"pointer", fontFamily:"inherit", textDecoration:"underline" }}>
+            Have an activation code instead?
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -187,40 +268,49 @@ function ProGate({ onUpgrade, label="This is a Pro feature" }) {
 function Onboarding({ onDone }) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [income, setIncome] = useState("");
-  const [currency] = useState("INR");
 
   const inp = { background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:10, padding:"14px 16px", color:"#e8e4d9", fontSize:16, fontFamily:"inherit", outline:"none", width:"100%", boxSizing:"border-box" };
+  const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const steps = [
     {
       emoji:"👋", title:"Welcome to ClearWealth",
-      sub:"Your personal AI financial planner. Let's set up your profile in 2 quick steps.",
+      sub:"Your personal financial planner. Let's set up your profile in 2 quick steps.",
       content: (
-        <div>
-          <label style={{ fontSize:12, color:"#64748b", display:"block", marginBottom:8 }}>YOUR FIRST NAME</label>
-          <input style={inp} placeholder="e.g. Rahul" value={name} onChange={e=>setName(e.target.value)}
-            onKeyDown={e=>e.key==="Enter"&&name.trim()&&setStep(1)} autoFocus />
+        <div style={{ display:"grid", gap:14 }}>
+          <div>
+            <label style={{ fontSize:12, color:"#64748b", display:"block", marginBottom:8 }}>YOUR FIRST NAME</label>
+            <input style={inp} placeholder="e.g. Rahul" value={name} onChange={e=>setName(e.target.value)} autoFocus />
+          </div>
+          <div>
+            <label style={{ fontSize:12, color:"#64748b", display:"block", marginBottom:8 }}>EMAIL ADDRESS</label>
+            <input style={{ ...inp, borderColor: email && !validEmail ? "#ef4444" : "rgba(255,255,255,0.15)" }}
+              type="email" inputMode="email" placeholder="e.g. rahul@gmail.com"
+              value={email} onChange={e=>setEmail(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&name.trim()&&validEmail&&setStep(1)} />
+            <p style={{ fontSize:11, color:"#475569", marginTop:6 }}>Used to activate Pro after payment — stored only on your device.</p>
+          </div>
         </div>
       ),
-      canNext: name.trim().length > 0,
+      canNext: name.trim().length > 0 && validEmail,
       nextLabel: "Next →",
     },
     {
       emoji:"💰", title:`Hi ${name || "there"}! What's your monthly income?`,
-      sub:"This helps us calculate your savings rate and give you accurate advice.",
+      sub:"This helps us calculate your savings rate and give personalised guidance.",
       content: (
         <div>
           <label style={{ fontSize:12, color:"#64748b", display:"block", marginBottom:8 }}>MONTHLY INCOME (₹)</label>
           <input style={{ ...inp, fontSize:22, fontWeight:700, color:"#10b981" }} type="number" inputMode="decimal"
-            placeholder="e.g. 85000" value={income} onChange={e=>setIncome(e.target.value)}
-            onKeyDown={e=>e.key==="Enter"&&income&&setStep(2)} autoFocus />
+            placeholder="e.g. 85000" value={income} onChange={e=>setIncome(e.target.value)} autoFocus />
           <p style={{ fontSize:12, color:"#334155", marginTop:8 }}>Include salary, freelance, rent income — everything.</p>
         </div>
       ),
       canNext: parseFloat(income) > 0,
       nextLabel: "Start Planning →",
-      extra: <p style={{ fontSize:11, color:"#334155", marginTop:12, textAlign:"center", lineHeight:1.7 }}>By continuing you agree to our <span style={{ color:"#10b981", cursor:"pointer" }}>Terms of Service</span> and acknowledge that ClearWealth is a budgeting tool, not a SEBI-registered financial advisor.</p>,
+      extra: <p style={{ fontSize:11, color:"#334155", marginTop:12, textAlign:"center", lineHeight:1.7 }}>By continuing you agree to our Terms of Service and acknowledge that ClearWealth is a budgeting tool, not a SEBI-registered financial advisor.</p>,
     },
   ];
 
@@ -229,7 +319,6 @@ function Onboarding({ onDone }) {
   return (
     <div style={{ minHeight:"100vh", background:"linear-gradient(135deg,#080e1a,#0d1b2a)", display:"flex", alignItems:"center", justifyContent:"center", padding:20, fontFamily:"'Georgia',serif" }}>
       <div style={{ maxWidth:460, width:"100%" }}>
-        {/* Progress */}
         <div style={{ display:"flex", gap:8, marginBottom:32 }}>
           {steps.map((_,i) => (
             <div key={i} style={{ flex:1, height:3, borderRadius:3, background:i<=step?"#10b981":"rgba(255,255,255,0.1)", transition:"background 0.3s" }} />
@@ -249,7 +338,7 @@ function Onboarding({ onDone }) {
             <button
               onClick={() => {
                 if (step < steps.length - 1) setStep(s=>s+1);
-                else onDone({ name: name.trim(), income: parseFloat(income) });
+                else onDone({ name: name.trim(), email: email.toLowerCase().trim(), income: parseFloat(income) });
               }}
               disabled={!current.canNext}
               style={{ flex:2, background:current.canNext?"linear-gradient(135deg,#10b981,#059669)":"rgba(255,255,255,0.05)", border:"none", borderRadius:10, padding:"13px 0", color:current.canNext?"#fff":"#334155", fontSize:15, fontWeight:700, cursor:current.canNext?"pointer":"default", fontFamily:"inherit", transition:"all 0.2s" }}>
@@ -501,10 +590,12 @@ function Landing({ onEnter }) {
 // ─────────────────────────────────────────────
 // DASHBOARD
 // ─────────────────────────────────────────────
-function Dashboard({ userName, userIncome }) {
+function Dashboard({ userName, userEmail, userIncome }) {
   const w = useWindowWidth(); const mob = w < 640;
   const [tab, setTab] = useState("overview");
-  const [plan] = useLocalStorage("cw_plan", "free");   // "free" | "pro"  — set to "pro" after payment
+  const [plan, setPlan] = useLocalStorage("cw_plan", "free");
+  const [showActivation, setShowActivation] = useState(false);
+  const [checkingPro, setCheckingPro] = useState(false);
   const [income, setIncome] = useLocalStorage("cw_income", userIncome);
   const [expenses, setExpenses] = useLocalStorage("cw_expenses", []);
   const [goals, setGoals] = useLocalStorage("cw_goals", []);
@@ -521,6 +612,29 @@ function Dashboard({ userName, userIncome }) {
   const isPro = plan === "pro";
   const limits = isPro ? PLANS.pro.limits : PLANS.free.limits;
 
+  // Razorpay links prefilled with user's email so webhook can match them
+  const monthlyLink = `${RAZORPAY_MONTHLY_LINK}?prefill[email]=${encodeURIComponent(userEmail)}&prefill[name]=${encodeURIComponent(userName)}`;
+  const yearlyLink  = `${RAZORPAY_YEARLY_LINK}?prefill[email]=${encodeURIComponent(userEmail)}&prefill[name]=${encodeURIComponent(userName)}`;
+
+  // Check Supabase for pro status by email
+  const checkProStatus = useCallback(async (silent = false) => {
+    if (isPro || !userEmail) return;
+    if (!silent) setCheckingPro(true);
+    try {
+      const res = await fetch(`/api/check-pro?email=${encodeURIComponent(userEmail)}`);
+      const data = await res.json();
+      if (data.isPro) setPlan("pro");
+    } catch (e) {}
+    if (!silent) setCheckingPro(false);
+  }, [isPro, userEmail]);
+
+  // Auto-check on load and every 20 seconds (catches payment completing in another tab)
+  useEffect(() => {
+    checkProStatus(true);
+    const interval = setInterval(() => checkProStatus(true), 20000);
+    return () => clearInterval(interval);
+  }, []);
+
   const totalExp = expenses.reduce((s,e)=>s+e.amount,0);
   const savings = income - totalExp;
   const savingsRate = income>0?Math.round((savings/income)*100):0;
@@ -532,6 +646,12 @@ function Dashboard({ userName, userIncome }) {
   const scoreLabel = score>=80?"Excellent 🌟":score>=60?"Good 👍":score>=40?"Fair ⚠️":"Needs Work 🔴";
 
   useEffect(()=>{ if(chatRef.current) chatRef.current.scrollTop=chatRef.current.scrollHeight; },[msgs]);
+
+  useEffect(() => {
+    const handler = () => setShowActivation(true);
+    document.addEventListener("showActivation", handler);
+    return () => document.removeEventListener("showActivation", handler);
+  }, []);
 
   const handleAddExp = useCallback(data => {
     if (expenses.length >= limits.expenses) { setShowAddExp(false); setShowUpgrade(true); return; }
@@ -578,7 +698,8 @@ Give concise, practical budgeting guidance in 2-4 sentences. You are NOT a licen
 
   return (
     <div style={{ minHeight:"100vh", background:"#080e1a", color:"#e8e4d9", fontFamily:"'Georgia',serif", paddingBottom:mob?80:0 }}>
-      {showUpgrade && <UpgradeModal onClose={()=>setShowUpgrade(false)} />}
+      {showUpgrade && <UpgradeModal onClose={()=>setShowUpgrade(false)} monthlyLink={monthlyLink} yearlyLink={yearlyLink} onCheckAccess={()=>checkProStatus(false)} checking={checkingPro} />}
+      {showActivation && <ActivationModal onSuccess={()=>setPlan("pro")} onClose={()=>setShowActivation(false)} />}
 
       {/* Header */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:mob?"12px 16px":"12px 24px", borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(8,14,26,0.97)", position:"sticky", top:0, zIndex:100 }}>
@@ -589,9 +710,12 @@ Give concise, practical budgeting guidance in 2-4 sentences. You are NOT a licen
         {!mob && <nav style={{ display:"flex", gap:2, background:"rgba(255,255,255,0.03)", borderRadius:10, padding:3 }}>
           {TABS.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{ padding:"7px 14px", borderRadius:8, border:"none", cursor:"pointer", fontSize:12, fontWeight:600, fontFamily:"inherit", background:tab===t.id?"rgba(16,185,129,0.15)":"transparent", color:tab===t.id?"#10b981":"#64748b" }}>{t.l}</button>)}
         </nav>}
-        {!isPro
-          ? <button onClick={()=>setShowUpgrade(true)} style={{ background:"linear-gradient(135deg,#10b981,#059669)", border:"none", borderRadius:8, padding:"7px 14px", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>⚡ Upgrade — ₹149/mo</button>
-          : <span style={{ background:"rgba(16,185,129,0.1)", border:"1px solid rgba(16,185,129,0.3)", color:"#10b981", fontSize:11, padding:"4px 10px", borderRadius:8, fontWeight:700 }}>PRO ✓</span>}
+        {!isPro ? (
+          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+            <button onClick={()=>setShowActivation(true)} style={{ background:"transparent", border:"1px solid rgba(16,185,129,0.3)", borderRadius:8, padding:"7px 12px", color:"#10b981", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>🔑 Enter Code</button>
+            <button onClick={()=>setShowUpgrade(true)} style={{ background:"linear-gradient(135deg,#10b981,#059669)", border:"none", borderRadius:8, padding:"7px 14px", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>⚡ Upgrade</button>
+          </div>
+        ) : <span style={{ background:"rgba(16,185,129,0.1)", border:"1px solid rgba(16,185,129,0.3)", color:"#10b981", fontSize:11, padding:"4px 10px", borderRadius:8, fontWeight:700 }}>PRO ✓</span>}
       </div>
 
       <div style={{ maxWidth:1100, margin:"0 auto", padding:mob?"14px":"24px", boxSizing:"border-box" }}>
@@ -878,6 +1002,5 @@ export default function App() {
   if (screen === "onboarding" || !profile) return (
     <Onboarding onDone={data => { setProfile(data); setScreen("app"); }} />
   );
-  return <Dashboard userName={profile.name} userIncome={profile.income} />;
+  return <Dashboard userName={profile.name} userEmail={profile.email} userIncome={profile.income} />;
 }
-
