@@ -4,17 +4,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 // CONFIG — replace these with your real Razorpay Payment Link URLs
 // Get them from: razorpay.com → Payment Links → Create
 // ─────────────────────────────────────────────
-// ─────────────────────────────────────────────
-// ACTIVATION CODES — add new codes here as users pay
-// Generate any code you want, then WhatsApp it to the user
-// ─────────────────────────────────────────────
-const VALID_PRO_CODES = [
-  "CWPRO2026",
-  "CLEARWEALTH1",
-  "SIDPRO01",
-  // Add more here every time someone pays
-];
-
 const RAZORPAY_MONTHLY_LINK = "https://rzp.io/rzp/tmxt2j1e";
 const RAZORPAY_YEARLY_LINK  = "https://rzp.io/rzp/JhS6pjaK";
 const CLAUDE_MODEL = "claude-sonnet-4-20250514";
@@ -118,23 +107,37 @@ function healthScore(income, totalExp, savingsRate, debts) {
 }
 
 // ─────────────────────────────────────────────
-// ACTIVATION MODAL
+// ACTIVATION MODAL — validates code server-side
 // ─────────────────────────────────────────────
-function ActivationModal({ onSuccess, onClose }) {
+function ActivationModal({ onSuccess, onClose, userEmail }) {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const ref = useRef(null);
   useEffect(() => { if (ref.current) ref.current.focus(); }, []);
 
-  const submit = () => {
-    const trimmed = code.trim().toUpperCase();
-    if (VALID_PRO_CODES.includes(trimmed)) {
-      setSuccess(true);
-      setTimeout(() => { onSuccess(); onClose(); }, 1500);
-    } else {
-      setError("Invalid code. Please check your code and try again, or contact support.");
+  const submit = async () => {
+    if (!code.trim() || loading) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/validate-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code.trim(), email: userEmail }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSuccess(true);
+        setTimeout(() => { onSuccess(); onClose(); }, 1500);
+      } else {
+        setError(data.error || "Invalid code. Please try again.");
+      }
+    } catch {
+      setError("Connection error. Please try again.");
     }
+    setLoading(false);
   };
 
   return (
@@ -145,7 +148,7 @@ function ActivationModal({ onSuccess, onClose }) {
           <div style={{ textAlign:"center", padding:"20px 0" }}>
             <div style={{ fontSize:48, marginBottom:16 }}>🎉</div>
             <h2 style={{ color:"#10b981", margin:"0 0 8px" }}>Pro Activated!</h2>
-            <p style={{ color:"#64748b", fontSize:14 }}>Welcome to ClearWealth Pro. Enjoy all features!</p>
+            <p style={{ color:"#64748b", fontSize:14 }}>Welcome to ClearWealth Pro!</p>
           </div>
         ) : (
           <>
@@ -153,24 +156,20 @@ function ActivationModal({ onSuccess, onClose }) {
               <div style={{ fontSize:36, marginBottom:12 }}>🔑</div>
               <h2 style={{ fontSize:20, margin:"0 0 8px", color:"#e8e4d9" }}>Enter Activation Code</h2>
               <p style={{ color:"#64748b", fontSize:13, lineHeight:1.6 }}>
-                After payment, you'll receive an activation code via WhatsApp or email within a few minutes.
+                After payment, you'll receive an activation code via WhatsApp or email.
               </p>
             </div>
-            <input
-              ref={ref}
-              value={code}
+            <input ref={ref} value={code}
               onChange={e => { setCode(e.target.value); setError(""); }}
               onKeyDown={e => e.key === "Enter" && submit()}
-              placeholder="e.g. CWPRO2026"
+              placeholder="Enter your code"
               style={{ width:"100%", background:"rgba(255,255,255,0.06)", border:`1px solid ${error?"#ef4444":"rgba(255,255,255,0.15)"}`, borderRadius:10, padding:"14px 16px", color:"#e8e4d9", fontSize:18, fontFamily:"inherit", outline:"none", textAlign:"center", letterSpacing:2, textTransform:"uppercase", boxSizing:"border-box", marginBottom:10 }}
             />
             {error && <p style={{ color:"#ef4444", fontSize:12, marginBottom:10, textAlign:"center" }}>{error}</p>}
-            <button onClick={submit} style={{ width:"100%", background:"linear-gradient(135deg,#10b981,#059669)", border:"none", borderRadius:10, padding:"13px 0", color:"#fff", fontSize:15, fontWeight:700, cursor:"pointer", fontFamily:"inherit", marginBottom:12 }}>
-              Activate Pro →
+            <button onClick={submit} disabled={loading} style={{ width:"100%", background:"linear-gradient(135deg,#10b981,#059669)", border:"none", borderRadius:10, padding:"13px 0", color:"#fff", fontSize:15, fontWeight:700, cursor:loading?"default":"pointer", fontFamily:"inherit", marginBottom:12, opacity:loading?0.7:1 }}>
+              {loading ? "Checking…" : "Activate Pro →"}
             </button>
-            <p style={{ textAlign:"center", fontSize:12, color:"#334155" }}>
-              Paid but no code yet? WhatsApp us and we'll send it within minutes.
-            </p>
+            <p style={{ textAlign:"center", fontSize:12, color:"#334155" }}>Paid but no code? WhatsApp us and we'll send it immediately.</p>
           </>
         )}
       </div>
@@ -616,17 +615,19 @@ function Dashboard({ userName, userEmail, userIncome }) {
   const monthlyLink = `${RAZORPAY_MONTHLY_LINK}?prefill[email]=${encodeURIComponent(userEmail)}&prefill[name]=${encodeURIComponent(userName)}`;
   const yearlyLink  = `${RAZORPAY_YEARLY_LINK}?prefill[email]=${encodeURIComponent(userEmail)}&prefill[name]=${encodeURIComponent(userName)}`;
 
-  // Check Supabase for pro status by email
+  // Always verify against server — localStorage is only a cache
   const checkProStatus = useCallback(async (silent = false) => {
-    if (isPro || !userEmail) return;
+    if (!userEmail) return;
     if (!silent) setCheckingPro(true);
     try {
       const res = await fetch(`/api/check-pro?email=${encodeURIComponent(userEmail)}`);
       const data = await res.json();
+      // Server is the source of truth — set OR clear pro status
       if (data.isPro) setPlan("pro");
+      else if (!data.isPro && plan === "pro") setPlan("free"); // revoke if cancelled
     } catch (e) {}
     if (!silent) setCheckingPro(false);
-  }, [isPro, userEmail]);
+  }, [userEmail, plan]);
 
   // Auto-check on load and every 20 seconds (catches payment completing in another tab)
   useEffect(() => {
@@ -699,7 +700,7 @@ Give concise, practical budgeting guidance in 2-4 sentences. You are NOT a licen
   return (
     <div style={{ minHeight:"100vh", background:"#080e1a", color:"#e8e4d9", fontFamily:"'Georgia',serif", paddingBottom:mob?80:0 }}>
       {showUpgrade && <UpgradeModal onClose={()=>setShowUpgrade(false)} monthlyLink={monthlyLink} yearlyLink={yearlyLink} onCheckAccess={()=>checkProStatus(false)} checking={checkingPro} />}
-      {showActivation && <ActivationModal onSuccess={()=>setPlan("pro")} onClose={()=>setShowActivation(false)} />}
+      {showActivation && <ActivationModal onSuccess={()=>setPlan("pro")} onClose={()=>setShowActivation(false)} userEmail={userEmail} />}
 
       {/* Header */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:mob?"12px 16px":"12px 24px", borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(8,14,26,0.97)", position:"sticky", top:0, zIndex:100 }}>
